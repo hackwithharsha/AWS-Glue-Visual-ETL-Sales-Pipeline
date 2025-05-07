@@ -106,7 +106,7 @@ Create a Glue Crawler
 
 Now, we go to console and edit the crawler like in the screenshot.
 
-![aws_options](./Images/aws_options.png)
+![aws_options](./images/aws_options.png)
 
 - Check ✅ the option `Create a single schema for each S3 path`.
 - Set `Table level` to 2
