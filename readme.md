@@ -128,17 +128,6 @@ Once complete, the crawler will create tables like `raw_sales`, `clean_sales`, e
 
 Now, time to query the sales directly using Athena.
 
-### Schedule Crawler
-
-Create scheduled crawlers to keep the schema updated as formats evolve
-
-```bash
-# Runs every 6 hours
->>> aws glue update-crawler \
-  --name sales-crawler \
-  --schedule "cron(0 */6 * * ? *)"
-```
-
 ### AWS Glue Studio
 
 - Go to Glue Studio Console
@@ -190,40 +179,12 @@ Create scheduled crawlers to keep the schema updated as formats evolve
 
 * Drop original `currency` and `amount` fields if no longer needed.
 
-#### 5. Make Sure Your Dataset Includes Partition Columns
-
-* Columns like `year`, `month`, `day` **must exist in your transformed schema**.
-* If you're deriving them from `order_date`, you can **add them using a Map or ApplyMapping transform**.
-
-Example:
-
-```python
-year = year(order_date)
-month = lpad(month(order_date), 2, "0")
-day = lpad(day(order_date), 2, "0")
-```
-
 #### 6. **Target: Amazon S3**
 
 - Choose "Amazon S3" as the **target**.
 - Output path: `s3://hack-with-harsha-sales-data/data/clean_sales/`
 - Format: Parquet (efficient for analytics)
-
-#### 7. Enable Partitioning in Target Node
-
-In the **S3 Target Node settings**:
-
-* Scroll to **"Partition Keys"**
-* Add: `year`, `month`, `day` (exactly matching the column names)
-* Glue will automatically write to partitioned folders like:
-
-  ```
-  .../year=2025/month=05/day=07/part-*.parquet
-  ```
-
-### **Schedule**
-
-* Trigger this job on a daily basis using a **Glue Workflow** or **EventBridge rule**.
+- Choose Partition Columns like `year`, `month`, `day`
 
 ### Final workflow
 
