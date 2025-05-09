@@ -4,13 +4,13 @@ This project demonstrates how to build a **code-free data pipeline** using **AWS
 
 ### Use Case
 
-- Raw sales data is ingested daily into `s3://my-company-raw/sales/` as CSV.
+- Raw sales data is ingested daily into `s3://hack-with-harsha-sales-data/data/raw_sales/` as CSV.
 - Catalog this data using crawler.
 - We clean the data:
   - Remove rows with missing `order_id`
   - Convert `order_date` to timestamp
   - Convert multiple currencies (EUR, INR, GBP) to USD
-- Final output is written as **Parquet** files to `s3://my-company-curated/sales/`
+- Final output is written as **Parquet** files to `s3://hack-with-harsha-sales-data/data/clean_sales/`
 
 ### Tech Stack
 
@@ -109,11 +109,11 @@ Now, we go to console and edit the crawler like in the screenshot.
 ![aws_options](./images/aws_options.png)
 
 - Check ✅ the option `Create a single schema for each S3 path`.
-- Set `Table level` to 2
-  - `data/${table_name}/` → Level 2 (create tables at this level)
+- Set `Table level` to 3
+  - `data/${table_name}/` → Level 3 (create tables at this level)
   - `data/${table_name}/${year}/...` → If set to 3, it groups tables by year (not recommended for our case).
 
-With `Table level = 2`, AWS Glue will:
+With `Table level = 3`, AWS Glue will:
 
 - Create one table per `${table_name}`
 - Automatically detect `year`, `month`, `day` as partitions.
@@ -153,43 +153,44 @@ Create scheduled crawlers to keep the schema updated as formats evolve
 
 ### **Steps in AWS Glue Studio (Visual ETL)**
 
-#### 1. **Source: Amazon S3**
+#### 1. **Source: Amazon Glue Catalog**
 
 * Choose "Glue Catalog" as the **source**.
 * Point to the `raw_sales` table.
 
-#### 2. **ApplyTransform: SelectFields**
-
-* Choose only the required fields: `order_id`, `order_date`, `country`, `amount`, `currency`.
-
-#### 3. **ApplyTransform: Filter**
+#### 2. **ApplyTransform: Filter**
 
 * Condition: `order_id IS NOT NULL`
-  *(You can apply this visually using the expression builder.)*
+  *use `SQL Query` tool*
 
-#### 4. **ApplyTransform: Map**
+  ```sql
+  select * from myDataSource
+  WHERE order_id is not null
+  ```
 
-* **Transform `order_date`**: Convert string to timestamp.
+#### 3. **ApplyTransform: Map**
+
+* **Transform `order_date`**: Convert string to timestamp. Tool name is **to_timestamp**
 
   ```python
   to_timestamp(order_date, "yyyy-MM-dd")
   ```
-* **Standardize `amount`**:
+* **Derived Colum `amount`**:
   Use a conditional expression like:
 
-  ```python
+  ```sql
   CASE
-    WHEN currency == "USD" THEN amount
-    WHEN currency == "EUR" THEN amount * 1.1
-    WHEN currency == "INR" THEN amount / 82
-  END as amount_usd
+    WHEN currency == \"USD\" THEN amount
+    WHEN currency == \"EUR\" THEN amount * 1.1
+    WHEN currency == \"INR\" THEN amount / 82
+  END
   ```
 
-#### 5. **DropFields** (Optional)
+#### 4. **DropFields** (Optional)
 
 * Drop original `currency` and `amount` fields if no longer needed.
 
-#### 6. Make Sure Your Dataset Includes Partition Columns
+#### 5. Make Sure Your Dataset Includes Partition Columns
 
 * Columns like `year`, `month`, `day` **must exist in your transformed schema**.
 * If you're deriving them from `order_date`, you can **add them using a Map or ApplyMapping transform**.
@@ -202,13 +203,13 @@ month = lpad(month(order_date), 2, "0")
 day = lpad(day(order_date), 2, "0")
 ```
 
-#### 7. **Target: Amazon S3**
+#### 6. **Target: Amazon S3**
 
 - Choose "Amazon S3" as the **target**.
 - Output path: `s3://hack-with-harsha-sales-data/data/clean_sales/`
 - Format: Parquet (efficient for analytics)
 
-#### 8. Enable Partitioning in Target Node
+#### 7. Enable Partitioning in Target Node
 
 In the **S3 Target Node settings**:
 
