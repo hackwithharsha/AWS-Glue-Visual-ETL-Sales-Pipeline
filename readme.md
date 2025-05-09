@@ -224,3 +224,7 @@ In the **S3 Target Node settings**:
 ### **Schedule**
 
 * Trigger this job on a daily basis using a **Glue Workflow** or **EventBridge rule**.
+
+### Final workflow
+
+![final](./images/final.jpg)
